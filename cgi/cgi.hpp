@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 class cgi
 {
@@ -23,11 +25,13 @@ private:
     char **env;
     char **args;
     int in_fd;
-    int out_fd;
+    //int out_fd;
+    int tmp_fd;
     std::string out_path;
     std::string php;
     std::string py;
     std::string outname;
+    int ext;
 
 public:
     cgi(std::string p);
@@ -41,6 +45,7 @@ public:
     void fill_args();
     std::string random_name();
     std::string get_outfile_path();
+    void remove_header();
     class fork_error : public std::exception
     {
         const char *what() const throw()
@@ -129,12 +134,10 @@ void cgi::exec_cgi(char **args, char **env, int fd)
     {
         throw(fork_error());
     }
-    if (cgi_pid != 0)
+    if (cgi_pid == 0)
     {
         dup2(fd, 0);
-        dup2(out_fd, 1);
-        // if (execve(args[0], args, env) == -1)
-        //     exit(1);
+        dup2(tmp_fd, 1);
         execve(args[0], args, env);
         exit(EXIT_FAILURE);
     }
@@ -159,7 +162,7 @@ void cgi::wait_cgi()
     }
     if (pid_status == DONE || pid_status == ERROR)
     {
-        close(out_fd);
+        close(tmp_fd);
         close(in_fd);
     }
 }
@@ -176,7 +179,6 @@ int cgi::check_extension(std::string str)
 
 void cgi::fill_args()
 {
-    int ext;
     ext = check_extension(path);
     args = new char *[3];
     if (ext == 1)
@@ -198,6 +200,61 @@ void cgi::fill_args()
     args[2] = NULL;
 }
 
+void wait_for_file(const char* filename)
+{
+    while (true)
+    {
+        std::ifstream file(filename);
+        if (file.good())
+        {
+            break;
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+}
+
+void cgi::remove_header()
+{
+    std::string s;
+    std::string str;
+    std::string f;
+    std::fstream infile;
+    std::ofstream outfile;
+
+    //wait_for_file("cgi/tempfile");
+    
+    infile.open("cgi/tempfile", std::ios::in);
+    while (getline(infile, s))
+    {
+        str += s;
+        if (infile.eof())
+            break;
+        str += '\n';
+    }
+    if (ext == 1)
+    {
+        int i = 0;
+        int n = 0;
+        while (str[i])
+        {
+            if (str[i] == '\n')
+                n++;
+            if (n == 3)
+                break;
+            i++;
+        }
+        f = str.substr(i + 1);
+    }
+    else
+        f = str;
+    outfile.open(outname, std::ios::out);
+    outfile << f;
+    infile.close();
+}
+
 void cgi::exec()
 {
     fill_args();
@@ -209,9 +266,12 @@ void cgi::exec()
     catch(...){}
     outname = "cgi/" + random_name() + ".html";
     in_fd = open(path.c_str(), O_RDONLY);
-    out_fd = open(outname.c_str(), O_RDWR | O_CREAT, 0666);
+    tmp_fd = open("cgi/tempfile", O_CREAT | O_WRONLY, 0666);
     fill_env();
     exec_cgi(args, env, in_fd);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    remove_header();
+    remove("cgi/tempfile");
 }
 
 #endif

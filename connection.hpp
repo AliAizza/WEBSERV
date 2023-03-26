@@ -162,7 +162,6 @@ namespace ws
                                     fds_servers.erase(fileD);
                                     close(fileD);
                                 }
-                            // }
                         }
                     }
                 }
