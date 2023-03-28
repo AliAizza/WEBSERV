@@ -46,6 +46,7 @@ public:
     std::string random_name();
     std::string get_outfile_path();
     void remove_header();
+    void wait_for_tempfile_file();
     class fork_error : public std::exception
     {
         const char *what() const throw()
@@ -200,19 +201,19 @@ void cgi::fill_args()
     args[2] = NULL;
 }
 
-void wait_for_file(const char* filename)
+void cgi::wait_for_tempfile_file()
 {
     while (true)
     {
-        std::ifstream file(filename);
-        if (file.good())
+        std::string t;
+        std::fstream tempfile;
+        tempfile.open("cgi/tempfile");
+        if(getline(tempfile, t))
         {
             break;
         }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        tempfile.close();
     }
 }
 
@@ -224,7 +225,7 @@ void cgi::remove_header()
     std::fstream infile;
     std::ofstream outfile;
 
-    //wait_for_file("cgi/tempfile");
+    wait_for_tempfile_file();
     
     infile.open("cgi/tempfile", std::ios::in);
     while (getline(infile, s))
@@ -248,7 +249,7 @@ void cgi::remove_header()
         }
         f = str.substr(i + 1);
     }
-    else
+    else if (ext == 2)
         f = str;
     outfile.open(outname, std::ios::out);
     outfile << f;
@@ -269,7 +270,7 @@ void cgi::exec()
     tmp_fd = open("cgi/tempfile", O_CREAT | O_WRONLY, 0666);
     fill_env();
     exec_cgi(args, env, in_fd);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
     remove_header();
     remove("cgi/tempfile");
 }
