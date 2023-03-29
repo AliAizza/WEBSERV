@@ -12,6 +12,7 @@ class response
 		std::string file_path;
 		std::string dir_body;
 		std::string cgi_file_path;
+		std::string content_type;
 		int			i;
 		int			fd;
 	
@@ -29,6 +30,9 @@ class response
 				cgi c(file_path);
 				c.exec();
 				file_path = c.get_outfile_path();
+				if (c.get_extension() == 1)
+					content_type = c.get_content_type();
+				std::cout << content_type << std::endl;
 			}
 			std::ostringstream oss;
 			oss << req.version + response_message(status);
