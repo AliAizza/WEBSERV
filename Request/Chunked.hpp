@@ -21,6 +21,7 @@ namespace ws
     void verifyChunk(std::string &str)
     {
         std::string last_one;
+        int i = 0;
         while (1)
         {
             std::string start_seq = "\r\n";
@@ -39,7 +40,10 @@ namespace ws
                 if (tmp == "0")
                 {
                     remove_zero_chunked(str);
-                    break;
+                    if (i == 0)
+                        return;
+                    else
+                        break;
                 }
                 if (isHexadecimal(tmp) && tmp.length() < 7)
                 {
@@ -47,6 +51,7 @@ namespace ws
                     continue;
                 }
             }
+            i++;
             last_one += str.substr(0, end);
             str = str.substr(end);
         }
