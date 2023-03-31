@@ -38,9 +38,10 @@ private:
     int ext;
     ws::HttpRequest req;
     std::string port;
+    std::string query;
 
 public:
-    cgi(std::string p, ws::HttpRequest request, std::string po);
+    cgi(std::string p, ws::HttpRequest request);
     ~cgi();
     int get_cgi_pid();
     void fill_env();
@@ -87,9 +88,10 @@ int check_extension2(std::string name)
         return (0);
 }
 
-cgi::cgi(std::string p, ws::HttpRequest request, std::string po)
+cgi::cgi(std::string p, ws::HttpRequest request)
 {
-    port = po;
+    query = req.query;
+    port = request.port;
     req = request;
     path = p;
     cgi_pid = -1;
@@ -131,62 +133,145 @@ std::string cgi::get_outfile_path()
 
 void cgi::fill_env()
 {
-    std::string s = "SERVER_PROTOCOL=";
+    // std::string s = "SERVER_PROTOCOL=";
 
-    s.append(req.version);
-    env = new char *[10];
+    // s.append(req.version);
+    // env = new char *[11];
+    // env[0] = new char[s.size() + 1];
+    // strcpy(env[0], s.c_str());
+
+    // s.clear();
+    // s = "SERVER_PORT=";
+    // s.append(port);
+    // env[1] = new char[s.size() + 1];
+    // strcpy(env[1], s.c_str());
+
+    // s.clear();
+    // s = "REQUEST_METHOD=";
+    // s.append(req.method);
+    // env[2] = new char[s.size() + 1];
+    // strcpy(env[2], s.c_str());
+
+    // s.clear();
+    // s = "PATH_INFO=";
+    // s.append(path);
+    // env[3] = new char[s.size() + 1];
+    // strcpy(env[3], s.c_str());
+
+    // s.clear();
+    // s = "SCRIPT_NAME=";
+    // s.append(php);
+    // env[4] = new char[s.size() + 1];
+    // strcpy(env[4], s.c_str());
+
+    // s.clear();
+    // s = "QUERY_STRING=";
+    // s.append(query);
+    // env[5] = new char[s.size() + 1];
+    // strcpy(env[5], s.c_str());
+
+    // s.clear();
+    // s = "REMOTE_ADDR=";
+    // s.append("127.0.0.1");
+    // env[6] = new char[s.size() + 1];
+    // strcpy(env[6], s.c_str());
+
+    // s.clear();
+    // s = "REDIRECT_STATUS=";
+    // s.append("200");
+    // env[7] = new char[s.size() + 1];
+    // strcpy(env[7], s.c_str());
+    
+    // s.clear();
+    // s = "CONTENT_TYPE=";
+    // s.append(req.headers["Content-type"]));
+    // env[8] = new char[s.size() + 1];
+    // strcpy(env[8], s.c_str());
+
+    // s.clear();
+    // s = "CONTENT_LENGTH=";
+    // s.append(std::to_string("Content-length"));
+    // env[9] = new char[s.size() + 1];
+    // strcpy(env[9], s.c_str());
+
+    // env[10] = NULL;
+    
+    if (req.method == "POST")
+        env = new char *[11];
+    else
+        env = new char *[9];
+    std::string s = "PATH_INFO=";
+    s.append(path);
     env[0] = new char[s.size() + 1];
     strcpy(env[0], s.c_str());
 
     s.clear();
-    s = "SERVER_PORT=";
-    s.append(port);
+    s = "QUERY_STRING=";
+    s.append(query);
     env[1] = new char[s.size() + 1];
     strcpy(env[1], s.c_str());
 
     s.clear();
-    s = "REQUEST_METHOD=";
-    s.append(req.method);
+    s = "SERVER_PORT=";
+    s.append(port);
     env[2] = new char[s.size() + 1];
     strcpy(env[2], s.c_str());
 
     s.clear();
-    s = "PATH_INFO=";
-    s.append(path);
+    s = "REQUEST_METHOD=";
+    s.append(req.method);
     env[3] = new char[s.size() + 1];
     strcpy(env[3], s.c_str());
 
     s.clear();
-    s = "SCRIPT_NAME=";
-    s.append(php);
+    s = "SCRIPT_FILENAME=";
+    s.append(path);
     env[4] = new char[s.size() + 1];
     strcpy(env[4], s.c_str());
-
+    
     s.clear();
-    s = "QUERY_STRING=";
-    //s.append();
+    s = "SCRIPT_NAME=";
+    s.append(php);
     env[5] = new char[s.size() + 1];
     strcpy(env[5], s.c_str());
 
     s.clear();
-    s = "REMOTE_ADDR=";
-    s.append("127.0.0.1");
+    s = "REDIRECT_STATUS=200";
     env[6] = new char[s.size() + 1];
     strcpy(env[6], s.c_str());
 
     s.clear();
-    s = "CONTENT_TYPE=";
-    //s.append();
+    s = "REMOTE_ADDR=";
+    s.append("127.0.0.1");
     env[7] = new char[s.size() + 1];
     strcpy(env[7], s.c_str());
 
-    s.clear();
-    s = "CONTENT_LENGTH=";
-    s.append(std::to_string(req.body.length()));
-    env[8] = new char[s.size() + 1];
-    strcpy(env[8], s.c_str());
+    if (req.method == "POST")
+    {
 
-    env[9] = NULL;
+        s.clear();
+        s = "CONTENT_TYPE=";
+        s.append(req.headers["Content-type"]);
+        env[8] = new char[s.size() + 1];
+        strcpy(env[8], s.c_str());
+
+        s.clear();
+        s = "CONTENT_LENGTH=";
+        s.append(req.headers["Content-length"]);
+        env[9] = new char[s.size() + 1];
+        strcpy(env[9], s.c_str());
+
+        env[10] = NULL;
+    }
+    else
+        env[8] = NULL;
+    // s.clear();
+    // s = "SERVER_PROTOCOL=";
+    // s.append(req.version);
+    // env = new char *[11];
+    // env[10] = new char[s.size() + 1];
+    // strcpy(env[10], s.c_str());
+
 }
 
 void cgi::exec_cgi(char **args, char **env, int fd)
@@ -310,7 +395,6 @@ void cgi::remove_header()
     std::ofstream outfile;
 
     wait_for_tempfile_file();
-    
     infile.open("cgi/tempfile", std::ios::in);
     while (getline(infile, s))
     {
@@ -367,7 +451,8 @@ void cgi::exec()
     //std::this_thread::sleep_for(std::chrono::milliseconds(100));
     remove_header();
     remove("cgi/tempfile");
-    remove("cgi/tempbody");
+    if (body_existense == 1)
+        remove("cgi/tempbody");
 }
 
 #endif

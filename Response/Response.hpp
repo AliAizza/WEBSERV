@@ -20,7 +20,7 @@ class response
 		bool		_cgi;
 		std::string content_type;
 
-        void    set_header(std::string file, int status, ws::HttpRequest req, bool dir, std::string &error_page, bool cgi_true, std::string port)
+        void    set_header(std::string file, int status, ws::HttpRequest req, bool dir, std::string &error_page, bool cgi_true)
         {
 
 			this->first_time = true;
@@ -40,8 +40,8 @@ class response
 
 			if (cgi_true && !errors && check_extension2(file_path) && req.method != "DELETE")
 			{
+				cgi c(file_path, req);
 				std::cout << "++++++++++++++++cgi++++++++++++++++\n";
-				cgi c(file_path, req, port);
 				c.exec();
 				_cgi = true;
 				file_path = c.get_outfile_path();
@@ -65,7 +65,7 @@ class response
 					if (errors)
 						oss << "Content-Type: " <<  "text/html" << "\r\n";
 					else if (_cgi && !content_type.empty())
-						oss << "Content-Type: " <<  content_type << "\r\n";
+						oss << "Content-Type: " <<  "text/html" << "\r\n";
 					else
 						oss << "Content-Type: " <<  check_MIME(file_path, dir) << "\r\n";
 					oss << "Set-Cookie: " + ws::CokiesResponse(req.session) << "\r\n";

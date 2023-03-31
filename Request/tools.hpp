@@ -247,11 +247,12 @@ namespace ws
     }
     std::string check_file(std::string path, int i = 1)
     {
+        (void) i;
         if (fileExists(path + "index.html") && i == 0)
             return path + "index.html";
-        else if (fileExists(path + "index.py") && i == 1)
+        else if (fileExists(path + "index.py"))
             return path + "index.py";
-        else if (fileExists(path + "index.php") && i == 1)
+        else if (fileExists(path + "index.php"))
             return path + "index.php";
         return std::string();
     }
