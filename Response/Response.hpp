@@ -22,7 +22,6 @@ class response
 
         void    set_header(std::string file, int status, ws::HttpRequest req, bool dir, std::string &error_page, bool cgi_true)
         {
-
 			this->first_time = true;
 			this->file_path = file;
 			_cgi = false;
@@ -41,13 +40,13 @@ class response
 			if (cgi_true && !errors && check_extension2(file_path) && req.method != "DELETE")
 			{
 				cgi c(file_path, req);
-				std::cout << "++++++++++++++++cgi++++++++++++++++\n";
 				c.exec();
 				_cgi = true;
 				file_path = c.get_outfile_path();
 				if (c.get_extension() == 1)
 					content_type = c.get_content_type();
-				std::cout << "++++++++++++++++cgi++++++++++++++++\n";
+				// std::cout << file_path << std::endl;
+				// std::cout << "++++++++++++++++cgi++++++++++++++++\n";
 			}
 			std::ostringstream oss;
 			oss << req.version + response_message(status);
@@ -65,10 +64,10 @@ class response
 					if (errors)
 						oss << "Content-Type: " <<  "text/html" << "\r\n";
 					else if (_cgi && !content_type.empty())
-						oss << "Content-Type: " <<  "text/html" << "\r\n";
+						oss << "Content-Type: " <<  content_type << "\r\n";
 					else
 						oss << "Content-Type: " <<  check_MIME(file_path, dir) << "\r\n";
-					oss << "Set-Cookie: " + ws::CokiesResponse(req.session) << "\r\n";
+					// oss <÷< "Set-Cookie: " + ws::CokiesResponse(req.session) << "\r\n";
 					if (status != 209)
 					{
 						if ((!dir || (dir && status == 403)) && !errors)
@@ -80,7 +79,7 @@ class response
 			}
 			oss << "\r\n";
 			this->response_header = oss.str();
-			std::cout << response_header << std::endl;
+			// std::cout << response_header << std::endl;
         }
 
 		int	_send(const char *a, int socket, size_t length)
@@ -241,5 +240,4 @@ class response
 				return " 502 Bad Gateway\r\n";
 			return " 200 OK\r\n";
 		}
-
 };

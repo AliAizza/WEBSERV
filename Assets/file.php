@@ -1,7 +1,7 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
     // save $_FILES['avatar'] to a inside a folder
+    
     $avatar = $_FILES['avatar'];
     $avatar_name = $avatar['name'];
     $avatar_tmp_name = $avatar['tmp_name'];
@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 ?>
 <!DOCTYPE html>
+hiiiii
 <div>
     <?php if (isset($_COOKIE['name']) && isset($_COOKIE['email'])): ?>
         <p>

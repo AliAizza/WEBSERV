@@ -18,7 +18,7 @@ namespace ws
 		std::string autoindex;
 		std::string _default;
 		std::string upload;
-		std::map<std::string, std::string> redirect;
+		std::string redirect;
 
 	public:
 		bool		cgi;
@@ -31,10 +31,10 @@ namespace ws
 		void set_autoindex(const std::string &b) { this->autoindex = b; }
 		std::string const &get_default() const { return this->_default; }
 		void set_default(const std::string &b) { this->_default = b; }
-		std::string const &get_upload() const { return this->upload; }
+		std::string &get_upload() { return this->upload; }
 		void set_upload(const std::string &b) { this->upload = b; }
-		std::map<std::string, std::string> &get_redirect() { return this->redirect; }
-		void set_redirect(const std::map<std::string, std::string> &b) { this->redirect = b; }
+		std::string &get_redirect() { return this->redirect; }
+		void set_redirect(std::string &b) { this->redirect = b; }
 	};
 
 	class server
@@ -70,10 +70,8 @@ namespace ws
 			this->path = this->get_location()[Location].get_root() + this->get_location()[Location].get_default();
 			if (Location != req.path)
 				this->path = pathjoin(this->get_location()[Location].get_root(), req.path, this->Location);
-			std::cout << path << std::endl;
 			if (fileExists(path))
 			{
-				std::cout << "EXist\n";
 				if (is_directory(path))
 				{
 					if (req.path.back() != '/')
@@ -207,31 +205,25 @@ namespace ws
 		void set_body_size(const std::string &a) { this->body_size = a; }
 		std::string const &get_error_page() const { return this->error_page; }
 		void set_error_page(const std::string &e) { this->error_page = e; }
-		// std::map<std::string, std::string> &get_cgi() { return this->cgi; }
-		// void set_cgi(const std::map<std::string, std::string> &c) { this->cgi = c; }
 		std::map<std::string, ws::location> &get_location() { return this->_location; }
-		void set_location(const std::map<std::string, ws::location> &a) { this->_location = a; }
+		void set_location(std::map<std::string, ws::location> a) { this->_location = a; }
 		void set_req(ws::HttpRequest reqi)
 		{
-			// reqi.body.clear();
 			this->req = reqi;
 		}
 		ws::HttpRequest get_req() { return this->req; }
 		std::string get_body() { return this->body; }
 		void set_body(std::string &b) { this->body = b; }
 		int get_status() { return this->status; };
-		// void										set_status(int status) { this->status = status; }
 		bool getDone() { return this->_response.done; }
 		void is_req_well_formed()
 		{
 			this->Location = locationChecker(req.path, this->get_location())->first;
-			std::cout << "Location = " << Location << std::endl;
+			// std::cout << "Location = " << Location << std::endl;
 			std::map<std::string, std::string> hed(req.headers.begin(), req.headers.end());
 			std::string a = hed["Transfer-Encoding"];
 			std::string C = hed["Content-Length"];
-			std::string R;
-			if (_location[this->Location].get_redirect().find("301") != _location[this->Location].get_redirect().end())
-				R = _location[this->Location].get_redirect().find("301")->second;
+			std::string R = _location[this->Location].get_redirect();
 			if (!R.empty())
 			{
 				path = R;
@@ -264,23 +256,26 @@ namespace ws
 					}
 				}
 			}
-			std::cout << "status = " << status << std::endl;
+			// std::cout << "status = " << status << std::endl;
 		}
 
 		void checker()
 		{
-			std::cout << "checker " << std::endl;
+			// std::cout << "checker " << std::endl;
+			if (req.path.find('?') != std::string::npos)
+				req.path = req.path.substr(0, req.path.find('?'));
 			std::map<std::string, location> l = this->get_location();
 			if (!methodChecker(req.method, l[Location].get_method()))
 				status = 405;
-			std::cout << "hey\n";
-			std::cout << req.NoUpload << std::endl;
-			if (!req.NoUpload && req.method == "POST")
+			// std::cout << "hey\n";
+			// std::cout << req.NoUpload << std::endl;
+			if (!req.NoUpload && req.method == "POST" && _location[Location].cgi)
 			{
 				status = 201;
 				path = this->_location[Location].get_root() + this->_location[Location].get_upload().substr(1);
-				std::cout << "=-=-=-" << path << std::endl;
 			}
+			else if (req.method == "POST" && !req.NoUpload && !_location[Location].cgi)
+				status = 403;
 			else if (req.method == "GET" && !status)
 				getMethod(Location);
 			else if (req.method == "DELETE" && !status)
@@ -291,11 +286,9 @@ namespace ws
 
 		void response()
 		{
-			std::cout << "lol\n";
 			if (!_response.first_time)
 			{
 				req.port = this->port;
-				std::cout << "here " << status << std::endl;
 				if (status == 301 && dir)
 					this->_response.set_header(req.path + '/', status, req, dir, this->error_page, this->_location[Location].cgi);
 				else
@@ -308,7 +301,6 @@ namespace ws
 			}
 			if ((dir && status != 403) || status == 301 || _response.errors)
 			{
-				std::cout << status << std::endl;
 				if (status != 301)
 					_response._send(_response.dir_body.c_str(), this->socket, _response.dir_body.length());
 				this->_response.done = true;
