@@ -1,5 +1,3 @@
-
-
 #ifndef CGI_HPP
 #define CGI_HPP
 
@@ -351,33 +349,43 @@ void cgi::remove_header()
 
     wait_for_tempfile_file();
     infile.open("cgi/tempfile", std::ios::in);
-    while (getline(infile, str))
+    if (ext == 1)
     {
-        if (str != "\r")
+        while (getline(infile, str))
         {
-            c_type.append(str);
-            c_type.append("\r\n");
-        }
-        else
-        {
+            if (str != "\r")
+            {
+                c_type += str;
+                c_type += "\r\n";
+            }
+            else
+            {
+                str.clear();
+                break;
+            }
             str.clear();
-            break;
         }
-        str.clear();
+        while (getline(infile, str))
+        {
+            f += str;
+            if (infile.eof())
+                break;
+            f += '\n';
+        }
+        content_type = c_type.substr(0, c_type.size() - 1);
     }
-    while (getline(infile, str))
+    else if (ext == 2)
     {
-        f.append(str);
-        if (infile.eof())
-            break;
-        f += '\n';
+        while (getline(infile, str))
+        {
+            f += str;
+            if (infile.eof())
+                break;
+            f += '\n';
+        }
     }
-    content_type = c_type.substr(0, c_type.size() - 1);
-    std::cout << "*****" << f << "*****" << std::endl;
+    std::cout << "*****" << content_type << "*****" << std::endl;
     outfile.open(outname, std::ios::out);
-    std::ofstream zzz;
-    zzz.open("cgi/test", std::ios::out);
-    zzz << f;
     outfile << f;
     infile.close();
 }
@@ -411,6 +419,19 @@ void cgi::exec()
     remove("cgi/tempfile");
     if (body_existense == 1)
         remove("cgi/tempbody");
+    
+    int i = 0;
+	while (env[i]){
+		delete env[i];
+		i++;
+	}
+	i = 0;
+	while (args[i]){
+		delete args[i];
+		i++;
+	}
+	delete[] args;
+	delete[] env;
 }
 
 #endif
