@@ -1,22 +1,16 @@
-FLAGS = -Wall -Wextra -Werror
+FLAGS = -Wall -Wextra -Werror -std=c++98
 SRC = main.cpp 
 CC = c++
 
-all : server 
+all : webserv $(SRC)
 
-server : $(SRC_CLIENT)
+webserv : $(SRC)
 	@$(CC) $(FLAGS) $(SRC) -o webserv
-	@./webserv conf.conf
-	@touch Session_management/sessionIds
-
 
 clean :
-	@rm -f webserv ./Session_management/sessionIds ./Assets/uploads/*
 	@tput setaf 1; echo "CLEAN COMPLET"
+	@rm -rf webserv
 
 fclean : clean
-
-push : 
-	git add . && git commit -m "adding querry" && git push origin webserv 
 
 re: fclean all

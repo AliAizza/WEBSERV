@@ -131,23 +131,26 @@ namespace ws
 
 		void DeleteMethod(const std::string &Location)
 		{
-			std::string file = this->get_location()[Location].get_root() + this->get_location()[Location].get_default();
+			path = this->get_location()[Location].get_root() + this->get_location()[Location].get_default();
 			if (Location != req.path)
-				file = pathjoin(this->get_location()[Location].get_root(), req.path, Location);
-			this->path = file;
-			if (fileExists(file))
+				path = pathjoin(this->get_location()[Location].get_root(), req.path, Location);
+			if (fileExists(path))
 			{
-				if (is_directory(file))
+				if (is_directory(path))
 				{
 					if (req.path.back() != '/')
 						status = 409;
-					else if (access(file.c_str(), W_OK))
+					else if (access(path.c_str(), W_OK))
 						status = 403;
 					else if (remove_directory(path))
 						status = 204;
+					else if (!remove_directory(path))
+						status = 403;
 					return;
 				}
-				if (!std::remove(path.c_str()))
+				if (access(path.c_str(), W_OK))
+					status = 403;
+				else if (!std::remove(path.c_str()))
 					status = 204;
 				return;
 			}
@@ -219,7 +222,6 @@ namespace ws
 		void is_req_well_formed()
 		{
 			this->Location = locationChecker(req.path, this->get_location())->first;
-			// std::cout << "Location = " << Location << std::endl;
 			std::map<std::string, std::string> hed(req.headers.begin(), req.headers.end());
 			std::string a = hed["Transfer-Encoding"];
 			std::string C = hed["Content-Length"];
@@ -237,38 +239,54 @@ namespace ws
 				status = 414;
 			else if (a.empty() && C.empty() && req.method == "POST")
 				status = 400;
-			else if (!C.empty() && atoi(C.c_str()) > atoi(this->body_size.c_str()))
+			else if (!C.empty() && std::atoll(C.c_str()) > std::atoll(this->body_size.c_str()))
 				status = 413;
 			else
 			{
 				for (size_t i = 0; i < req.path.length(); i++)
 				{
-					if ((isalnum(req.path[i])) || (req.path[i] == 33)
-						|| (req.path[i] >= 35 && req.path[i] <= 47)
-							|| (req.path[i] <= 60 && req.path[i] >= 57) || (req.path[i] == 61)
-								|| (req.path[i] >= 63 && req.path[i] <= 64) || (req.path[i] == 95)
-									|| (req.path[i] == 126))
-						i++;
-					else
+					if (req.path[i] == '%')
+					{
+						if (i + 2 >= path.length()
+							|| !isValidPercentEncodedSequence(&path[i]))
+						{
+							status = 400;
+							break ;
+						}	
+					}
+					if (!valid_path(req.path[i]))
 					{
 						status = 400;
 						break ;
 					}
 				}
 			}
-			// std::cout << "status = " << status << std::endl;
+		}
+
+		bool isValidPercentEncodedSequence(const char* str) {
+			for (int i = 1; i < 3; ++i) {
+				if (!std::isxdigit(str[i])) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		bool valid_path(char c)
+		{
+			std::string a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%";
+			if (a.find(c) != std::string::npos)
+				return 1;
+			return 0;
 		}
 
 		void checker()
 		{
-			// std::cout << "checker " << std::endl;
 			if (req.path.find('?') != std::string::npos)
 				req.path = req.path.substr(0, req.path.find('?'));
 			std::map<std::string, location> l = this->get_location();
 			if (!methodChecker(req.method, l[Location].get_method()))
 				status = 405;
-			// std::cout << "hey\n";
-			// std::cout << req.NoUpload << std::endl;
 			if (!req.NoUpload && req.method == "POST" && _location[Location].cgi)
 			{
 				status = 201;

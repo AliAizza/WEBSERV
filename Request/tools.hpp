@@ -44,30 +44,6 @@ namespace ws
             return true;
         }
     }
-    std::map<std::string, std::string> parseKeyValuePairs(std::string input, char delimiter = ';')
-    {
-        input.insert(input.length(), 1, ';');
-        std::map<std::string, std::string> output;
-        size_t i = 0;
-        size_t delimiterPos = input.find(delimiter);
-        while (delimiterPos != std::string::npos)
-        {
-            std::string keyValueString = input.substr(0, delimiterPos - 0);
-            size_t equalsPos = keyValueString.find('=');
-            if (equalsPos != std::string::npos)
-            {
-                std::string key = keyValueString.substr(0, equalsPos);
-                std::string value = keyValueString.substr(equalsPos + 1);
-                if (i != 0)
-                    key = key.substr(1);
-                output[key] = value;
-            }
-            input = input.substr(delimiterPos + 1);
-            delimiterPos = input.find(delimiter);
-            i++;
-        }
-        return output;
-    }
     std::string get_PWD(char **env)
     {
         std::string tmp;
@@ -98,52 +74,6 @@ namespace ws
         std::stringstream buffer;
         buffer << infile.rdbuf();
         return buffer.str();
-    }
-    void setCookies_onfile(std::map<std::string, std::string> &cook, std::string token)
-    {
-        std::string file = readFileToString("./Session_management/sessionIds");
-        size_t poss;
-        if ((poss = file.find(token)) != std::string::npos)
-        {
-            size_t pos = poss;
-            std::string cookies_Add;
-            for (std::map<std::string, std::string>::iterator it = cook.begin(); it != cook.end(); it++)
-            {
-                if (it->first != "session_id")
-                {
-                    if ((pos = file.find(" " + it->first + "=", pos)) != std::string::npos)
-                    {
-                        pos += 2 + it->first.length();
-                        size_t value_pos = file.find(";", pos);
-                        file = file.erase(pos, value_pos - pos);
-                        for (size_t i = 0; it->second[i]; i++)
-                            file.insert(pos + i, 1, it->second[i]);
-                    }
-                    else
-                        cookies_Add += it->first + "=" + it->second + "; ";
-                }
-            }
-            size_t len = token.length();
-            if (!cookies_Add.empty())
-                for (size_t i = 0; cookies_Add[i]; i++)
-                    file.insert(file.find(token) + len + 2 + i, 1, cookies_Add[i]);
-            writeToFile("./Session_management/sessionIds", file);
-        }
-    }
-    std::string CokiesResponse(std::string token)
-    {
-        std::ifstream file("./Session_management/sessionIds");
-        std::string line;
-        if (file.is_open())
-        {
-            while (getline(file, line))
-            {
-                if (line.find(token) != std::string::npos)
-                    return line.substr(0, line.length() - 2);
-            }
-            file.close();
-        }
-        return "session_id=" + token;
     }
     std::string randomString(int length)
     {
@@ -232,11 +162,9 @@ namespace ws
         DIR *dir = opendir(path.c_str());
         if (!dir)
         {
-            // Directory does not exist or cannot be opened
             return false;
         }
 
-        // Loop over the contents of the directory
         struct dirent *entry;
         while ((entry = readdir(dir)))
         {
@@ -248,7 +176,8 @@ namespace ws
             if (is_directory(entry_path))
             {
                 entry_path = entry_path + "/";
-                if (!remove_directory(entry_path.c_str()))
+                if (!remove_directory(entry_path.c_str())
+                    || !access(entry_path.c_str(), W_OK))
                 {
                     closedir(dir);
                     return false;
@@ -256,8 +185,7 @@ namespace ws
             }
             else
             {
-                // Remove files
-                if (remove(entry_path.c_str()) != 0)
+                if (remove(entry_path.c_str()) != 0 || !access(entry_path.c_str(), W_OK))
                 {
                     closedir(dir);
                     return false;
@@ -265,13 +193,11 @@ namespace ws
             }
         }
 
-        // Close the directory and remove it
         closedir(dir);
         if (rmdir(path.c_str()) != 0)
         {
             return false;
         }
-
         return true;
     }
     std::string check_file(std::string path, int i = 1)
